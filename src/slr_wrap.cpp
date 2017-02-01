@@ -25,7 +25,7 @@ namespace np = boost::python::numpy;
 np::ndarray Array2Numpy(float *array, int length)
 {
     py::tuple shape = py::make_tuple(length);
-    np::dtype dt1 = np::dtype::get_builtin<std::complex<double> >(); 
+    np::dtype dt1 = np::dtype::get_builtin<double>(); 
     np::ndarray result = np::zeros(shape, dt1);
 
     for (unsigned int ii = 0; ii < (unsigned int)length; ii++)
@@ -37,17 +37,14 @@ np::ndarray Array2Numpy(float *array, int length)
 }
 
 np::ndarray GenerateRF(const int &nSamples,
-		       const float &sliceThick,
-		       const float &duration,
-		       const float &amp,
+		       const float &tbw,
+		       const int &ptype,
 		       const float &inRipple,
-		       const float &outRipple,
-		       const int &type)
+		       const float &outRipple)
 {
     float *rf = static_cast<float *>(malloc(nSamples*sizeof(float)));
 
-    gen_slr_rf(rf,nSamples,sliceThick,duration,amp,inRipple,
-	       outRipple,type);
+    gen_slr_rf(rf,nSamples,tbw,ptype,inRipple,outRipple);
     
     np::ndarray result = Array2Numpy(rf,nSamples);
     

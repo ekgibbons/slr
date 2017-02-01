@@ -18,3 +18,14 @@ INSTALL_PATH = /location/of/python/path
 ```
 ## Usage
 At the moment is is very rough.  An example script `test.py` is included to show a very simple pulse.  At the moment, the module has only one usable function to generate an RF pulse.  More to come later...
+
+
+For a test case, see the `python/test.py` script for a quick example.  There is an SLR object slowly being built.  The documentation can be found by launching python in the command line and then
+```python
+>>>import slr
+>>>help(slr)
+```
+to see that documentation.
+
+
+The excitation seems to be working well, the other pulses...not as much.  Hopefully can get those working soon.

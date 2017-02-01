@@ -69,16 +69,16 @@ void b2a(double *a, double *b, int numpts) {
     }
     numpts_zp *= 16; // number of complex vals in each array
     
-    double *b_ft = calloc(2*numpts_zp, sizeof(double));
-    double *a_ft = calloc(2*numpts_zp, sizeof(double));
-    double *a_mag = calloc(2*numpts_zp, sizeof(double));
+    double *b_ft = calloc(2*(size_t)numpts_zp, sizeof(double));
+    double *a_ft = calloc(2*(size_t)numpts_zp, sizeof(double));
+    double *a_mag = calloc(2*(size_t)numpts_zp, sizeof(double));
     
     if ( b_ft==NULL || a_ft==NULL || a_mag==NULL ) {
         printf("Error allocating memory");
         return;
     }
     
-    memcpy(b_ft, b, 2*numpts*sizeof(double));
+    memcpy(b_ft, b, 2*(long unsigned int)numpts*sizeof(double));
     
     four1(b_ft-1, numpts_zp, 1);
     
@@ -146,7 +146,7 @@ void inverse_slr(float *rf1, double *a, double *b, int numpts) {
         theta = atan2(sj[1], sj[0]);
         
         // compute rf samples
-        rf1[j] = (float)phi*cos(theta);
+        rf1[j] = (float)phi*(float)cos(theta);
         // rf1[2*j+1] = phi*sin(theta); // need to keep imag component?
         
         if (j == 0) break;
@@ -167,16 +167,39 @@ void inverse_slr(float *rf1, double *a, double *b, int numpts) {
     }
 }
 
+float dinf(float d1, float d2)
+{
 
-void gen_slr_rf(float* rf1, int numpts, float slice_thick, float rf1_dur, float a_gzrf1, float in_err, float out_err, int type) {
-    
+    float a1 = (float)5.309e-3;
+    float a2 = (float)7.114e-2;
+    float a3 = (float)-4.761e-1;
+    float a4 = (float)-2.66e-3;
+    float a5 = (float)-5.941e-1;
+    float a6 = (float)-4.278e-1;
+
+    float l10d1 = (float)log10(d1);
+    float l10d2 = (float)log10(d2);
+
+    float d;
+
+    d=(a1*l10d1*l10d1+a2*l10d1+a3)*l10d2+(a4*l10d1*l10d1+a5*l10d1+a6);
+
+    return d;
+
+}
+
+
+void gen_slr_rf(float* rf1, int numpts, float tb, int ptype, float in_err, float out_err)
+{
+
+
     // Variable declarations
     int i;
-    double bsf, tb, d_inf, w, log_in_err, log_out_err;
+    double bsf, d_inf, w;
     
     // Cayley-Klein coeffs (arrays to hold real and imag vals)
-    double *b = malloc(2*numpts*sizeof(double));
-    double *a = malloc(2*numpts*sizeof(double));
+    double *b = malloc(2*(long unsigned int)numpts*sizeof(double));
+    double *a = malloc(2*(long unsigned int)numpts*sizeof(double));
     
     if ( a==NULL || b==NULL ) {
         printf("Error allocating memory");
@@ -184,11 +207,11 @@ void gen_slr_rf(float* rf1, int numpts, float slice_thick, float rf1_dur, float 
     }
     
     // Determine effective in-slice and out-of-slice errors
-    switch (type) {
+    switch (ptype) {
         case EXCITATION :
-            bsf = sqrt(0.5);
-            in_err = sqrt(in_err)*bsf;
-            out_err = out_err*bsf;
+            bsf = (float)sqrt(0.5);
+            in_err = (float)(sqrt(in_err)*bsf);
+            out_err = (float)(out_err*bsf);
             break;
             
         case SMALLTIP :
@@ -198,19 +221,19 @@ void gen_slr_rf(float* rf1, int numpts, float slice_thick, float rf1_dur, float 
         case SPINECHO :
             bsf = 1;
             in_err /= 4;
-            out_err = sqrt(out_err);
+            out_err = (float)sqrt(out_err);
             break;
             
         case SATURATION:
-            bsf = sqrt(0.5);
+            bsf = (float)sqrt(0.5);
             in_err /= 2;
-            out_err = sqrt(out_err);
+            out_err = (float)sqrt(out_err);
             break;
             
         case INVERSION :
             bsf = 1;
             in_err /= 8;
-            out_err = sqrt(0.5*out_err);
+            out_err = (float)sqrt(0.5*out_err);
             break;
             
         default :
@@ -219,10 +242,7 @@ void gen_slr_rf(float* rf1, int numpts, float slice_thick, float rf1_dur, float 
     }
     
     // Transform scan/slice parameters into filter design parameters
-    log_in_err = log10(in_err);
-    log_out_err = log10(out_err);
-    tb = GAMMA*a_gzrf1*slice_thick*rf1_dur; // time-bandwidth product
-    d_inf = (5.309e-3*log_in_err*log_in_err + 7.114e-2*log_in_err + -4.761e-1)*log_out_err + -2.66e-3*log_in_err*log_in_err + -5.941e-1*log_in_err + -4.278e-1; // performance measure
+    d_inf = dinf(in_err, out_err);
     w = d_inf/tb; // transition width
     
     // Parks-McClellan inputs
@@ -231,13 +251,13 @@ void gen_slr_rf(float* rf1, int numpts, float slice_thick, float rf1_dur, float 
     double des[2] = {1, 0};     // intended band amplitudes
     double weight[2] = {1, in_err/out_err}; // error weights
     double bands[4] = {0, (1-w)*tb/numpts/2, (1+w)*tb/numpts/2, 0.5}; // location of band edges [0 w1, w2, 0.5]
-    double *h = malloc(numpts*sizeof(double)); // filter coeffs
+    double *h = malloc((long unsigned int)numpts*sizeof(double)); // filter coeffs
     
     // compute filter coeffs using parks-mcclellan
     remez(h, numpts, numbands, bands, des, weight, filttype);
     
     
-    if (type == SMALLTIP) {
+    if (ptype == SMALLTIP) {
         // use small-tip approximation and assume fourier transform relationship
         for (i=0; i<numpts; i++) {
             rf1[i] = (float) h[i];

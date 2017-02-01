@@ -35,6 +35,7 @@ LDFLAGS += -Wl,--unresolved-symbols=report-all
 
 $(TARGET): $(OBJECTS_C) $(OBJECTS_CPP)
 	$(CXX) $(LDFLAGS) $(OBJECTS_C) $(OBJECTS_CPP) $(LIBRARY_PATH) $(LD_LIBS) -o $(TARGET).so
+	mv $(TARGET).so python/
 
 $(OBJECTS_C): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) $(CPPFLAGS) -c -o $@ $< 
@@ -43,7 +44,8 @@ $(OBJECTS_CPP): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 install:
-	cp $(TARGET).so $(INSTALL_PATH)
+	cp python/$(TARGET).so $(INSTALL_PATH)
+	cp python/slr.py $(INSTALL_PATH)
 
 clean:
 	rm -rf *~ *.o *.so
