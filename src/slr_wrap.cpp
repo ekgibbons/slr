@@ -42,7 +42,7 @@ np::ndarray GenerateRF(const int &nSamples,
 		       const float &amp,
 		       const float &inRipple,
 		       const float &outRipple,
-		       const float &type)
+		       const int &type)
 {
     float *rf = static_cast<float *>(malloc(nSamples*sizeof(float)));
 

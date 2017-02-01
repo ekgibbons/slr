@@ -1,17 +1,16 @@
 TARGET = slr_c
-# OBJECTS = slr_wrap.o slr_design.o remez.o
-# #  = slr_design.h remez.h
+
+INSTALL_PATH = ~/python/modules/mri
 
 SRCDIR = src
 OBJDIR = obj
 BINDIR = bin
 
-SOURCES   = $(wildcard $(SRCDIR)/*.c) #$(wildcard $(SRCDIR)/*.cpp)
+SOURCES   = $(wildcard $(SRCDIR)/*.c)
 SOURCES_CPP = $(wildcard $(SRCDIR)/*.cpp)
-INCUDES   = $(wildcard $(SRCDIR)/*.h) #$(wildcard $(SRCDIR)/*.hpp)
+INCUDES   = $(wildcard $(SRCDIR)/*.h)
 INCUDES_HPP = $(wildcard $(SRCDIR)/*.hpp)
 OBJECTS_C    = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
-# OBJECTS_C    += $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 OBJECTS_CPP  = $(SOURCES_CPP:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 # location of the Python header files
@@ -26,9 +25,7 @@ BOOST_LIB = /usr/local/lib
 LIBRARY_PATH = -L$(BOOST_LIB)
 PYTHON_LIBS = -lpython$(PYTHON_VERSION) -lboost_python -lboost_numpy 
 
-LD_LIBS = $(PYTHON_LIBS)
-
-
+LD_LIBS = $(PYTHON_LIBS) 
 CPPFLAGS = -O3 -Wall -Wconversion -fPIC 
 CXXFLAGS = -std=c++11 -I$(PYTHON_INCLUDE) -I$(BOOST_INC)
 # CFLAGS = 
@@ -46,7 +43,7 @@ $(OBJECTS_CPP): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 install:
-	cp $(TARGET).so ~/python/modules/mri
+	cp $(TARGET).so $(INSTALL_PATH)
 
 clean:
 	rm -rf *~ *.o *.so
