@@ -1,4 +1,4 @@
-TARGET = slr_c
+TARGET = rf_tools
 
 INSTALL_PATH = ~/python/modules/mri
 

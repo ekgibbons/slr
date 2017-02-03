@@ -1,13 +1,13 @@
 //
-//  slr_design.h
+//  slr_tools.h
 //  
 //
 //  Created by Christopher Sandino on 4/15/15.
-//
+//  Modified (heavily) by Eric Gibbons 2017.02.03
 //
 
-#ifndef __SLR_DESIGN_H__
-#define __SLR_DESIGN_H__
+#ifndef __SLR_TOOLS_H__
+#define __SLR_TOOLS_H__
 
 // Pulse type options
 #define EXCITATION 0
@@ -20,9 +20,7 @@
 #define GAMMA 4.26e3
 
 // Only functions that should be called from external code
-void gen_slr_rf(float* rf1, int numpts, float tb, int ptype,
-		float in_err, float out_err);
-void ge_export(float *rf1);
+void Beta2Alpha(double *a, double *b, int numpts);
+void InverseSLR(double *rf1, double *a, double *b, int numpts);
 
-
-#endif /* defined(____slr_design__) */
+#endif /* defined(____slr_tools__) */
