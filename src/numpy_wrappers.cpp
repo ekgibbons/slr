@@ -61,7 +61,6 @@ void Numpy2Array(const np::ndarray &arrayNumpy,
 		 double *arrayOut,
 		 int length)
 {
-
     std::vector<double> tempVector(length);
     
     std::copy(reinterpret_cast<double*>(arrayNumpy.get_data()), 
@@ -78,7 +77,6 @@ void Numpy2CArray(const np::ndarray &arrayNumpy,
 		  double *arrayOut,
 		  int length)
 {
-
     std::vector<double> tempVector(length);
     
     std::copy(reinterpret_cast<double*>(arrayNumpy.get_data()), 
@@ -96,7 +94,6 @@ void CNumpy2CArray(const np::ndarray &arrayNumpy,
 		  double *arrayOut,
 		  int length)
 {
-
     std::vector<std::complex<double> > tempVector(length);
     
     std::copy(reinterpret_cast<std::complex<double>* >(arrayNumpy.get_data()), 
@@ -105,7 +102,6 @@ void CNumpy2CArray(const np::ndarray &arrayNumpy,
 
     for (unsigned int ii = 0; ii < (unsigned int) length; ii++)
     {
-	printf("%f + j%f\n",tempVector[ii].real(),tempVector[ii].imag());
 	arrayOut[2*ii] = (double)tempVector[ii].real();
 	arrayOut[2*ii+1] = (double)tempVector[ii].imag();
     }

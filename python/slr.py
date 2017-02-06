@@ -161,11 +161,9 @@ class slr:
             
         betaPolynomial *= bsf
 
-        print betaPolynomial
         # insure that the betaPolynomial is complex...probably won't be...but
         # this is okay.
-        # betaPolynomial = betaPolynomial.astype(complex)
-        # print betaPolynomial
+        betaPolynomial = betaPolynomial.astype(complex)
 
         self.rf = rf_tools.Beta2RF(betaPolynomial)
         self._RFScaleG()
@@ -188,46 +186,11 @@ class slr:
 
         return self.rfScaled
         
-        # plt.figure()
-        # plt.plot(betaPolynomial.real)
-        # plt.plot(self.rf.real)
-        # plt.show()
-
-
-
-
-
-        
-    # def PlotRF(self,scaling=True):
-    #     """
-        
-    #     Arguments:
-    #     - `scaling`:
-    #     """
-
-    #     if scaling:
-    #         self.RFScaleG()
-    #         rfPlot = self.rfScaled
-    #     else:
-    #         rfPlot = self.rf
-
-    #     plt.figure()
-    #     plt.plot(rfPlot)
-    #     plt.show()        
-        
-    # def GetRF(self):
-    #     """
-        
-    #     Arguments:
-
-    #     """
-
-    #     return self.rf
         
     # def __Beta2Alpha(self,beta):
     #     """Takes the beta polynomial and converts it to the alpha
     #        polynomial.  Usually done in C routine, but that isn't
-    #        the algorithm isn't that complicated...
+    #        the algorithm that is complicated...
         
     #     Arguments:
     #     - `beta`:

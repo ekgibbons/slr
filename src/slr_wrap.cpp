@@ -84,8 +84,6 @@ np::ndarray Beta2RF(const np::ndarray &betaNumpy)
 
     std::string dtype = py::extract<std::string>(py::str(betaNumpy.get_dtype()));
 
-    std::cout << dtype << std::endl;
-    
     if (dtype.compare("complex128") == 0)
     {
 	CNumpy2CArray(betaNumpy, beta, numberPoints);
@@ -95,12 +93,6 @@ np::ndarray Beta2RF(const np::ndarray &betaNumpy)
 	Numpy2CArray(betaNumpy, beta, numberPoints);
     }
 
-    for (int i = 0; i < numberPoints; ++i)
-    {
-	printf("beta[%i] = %f + j%f\n",i,beta[2*i],beta[2*i+1]);
-    }
-
-    
     Beta2Alpha(alpha, beta, numberPoints);
     InverseSLR(rf, alpha, beta, numberPoints);
     
