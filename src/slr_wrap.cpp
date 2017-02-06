@@ -21,6 +21,8 @@
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
 
+#include "numpy_wrappers.hpp"
+
 extern "C" {
 #include "slr_tools.h"
 }
@@ -34,57 +36,6 @@ using boost::uint8_t;
 namespace py = boost::python;
 namespace np = boost::python::numpy;
 
-np::ndarray Array2Numpy(double *array, int length)
-{
-    py::tuple shape = py::make_tuple(length);
-    np::dtype dt1 = np::dtype::get_builtin<double>(); 
-    np::ndarray result = np::zeros(shape, dt1);
-
-    for (unsigned int ii = 0; ii < (unsigned int)length; ii++)
-    {
-	result[ii] = (double)array[ii];
-    }
-    
-    return result;
-}
-
-np::ndarray CArray2Numpy(double *array, int length)
-{
-
-    std::complex<double> j = std::complex<double>(0,1.0);
-    
-    py::tuple shape = py::make_tuple(length);
-    np::dtype dt1 = np::dtype::get_builtin<std::complex<double> >(); 
-    np::ndarray result = np::zeros(shape, dt1);
-
-    for (unsigned int ii = 0; ii < (unsigned int)length; ii++)
-    {
-	result[ii] = array[2*ii] + j*array[2*ii+1];
-    }
-    
-    return result;
-}
-
-
-void CNumpy2Array(const np::ndarray &arrayNumpy,
-		  double *arrayOut,
-		  int length)
-{
-
-    std::vector<std::complex<double> > tempVector(length);
-    
-    std::copy(reinterpret_cast<std::complex<double>*>(arrayNumpy.get_data()), 
-	      reinterpret_cast<std::complex<double>*>(arrayNumpy.get_data())+length,
-	      tempVector.begin());
-
-    for (unsigned int ii = 0; ii < (unsigned int) length; ii++)
-    {
-	arrayOut[2*ii] = tempVector[ii].real();
-	arrayOut[2*ii + 1] = tempVector[ii].imag();
-    }
-
-}
-
 /* Wrapper for the Beta2Alpha function.  This function takes the beta polynomial
  * as a numpy array and calculates the alpha polynomial and returns it to python
  * as a complex numpy array.  Note:  the I/O is in double complex!
@@ -95,12 +46,21 @@ np::ndarray Beta2AlphaWrap(const np::ndarray &betaNumpy)
     
     double *beta = static_cast<double *>(malloc(2*numberPoints*sizeof(double)));
     double *alpha = static_cast<double *>(malloc(2*numberPoints*sizeof(double)));
+
+    std::string dtype = py::extract<std::string>(py::str(betaNumpy.get_dtype()));
     
-    CNumpy2Array(betaNumpy,beta,numberPoints);
+    if (dtype.compare("complex128") == 0)
+    {
+	CNumpy2CArray(betaNumpy, beta, numberPoints);
+    }
+    else if (dtype.compare("float64") == 0)
+    {
+	Numpy2CArray(betaNumpy, beta, numberPoints);
+    }
 
     Beta2Alpha(alpha, beta, numberPoints);
     
-    np::ndarray result = CArray2Numpy(alpha,numberPoints);
+    np::ndarray result = CArray2CNumpy(alpha,numberPoints);
 
     free(beta);
     free(alpha);
@@ -121,13 +81,30 @@ np::ndarray Beta2RF(const np::ndarray &betaNumpy)
     double *beta = static_cast<double *>(malloc(2*numberPoints*sizeof(double)));
     double *alpha = static_cast<double *>(malloc(2*numberPoints*sizeof(double)));
     double *rf = static_cast<double *>(malloc(2*numberPoints*sizeof(double)));
-    
-    CNumpy2Array(betaNumpy,beta,numberPoints);
 
+    std::string dtype = py::extract<std::string>(py::str(betaNumpy.get_dtype()));
+
+    std::cout << dtype << std::endl;
+    
+    if (dtype.compare("complex128") == 0)
+    {
+	CNumpy2CArray(betaNumpy, beta, numberPoints);
+    }
+    else if (dtype.compare("float64") == 0)
+    {
+	Numpy2CArray(betaNumpy, beta, numberPoints);
+    }
+
+    for (int i = 0; i < numberPoints; ++i)
+    {
+	printf("beta[%i] = %f + j%f\n",i,beta[2*i],beta[2*i+1]);
+    }
+
+    
     Beta2Alpha(alpha, beta, numberPoints);
     InverseSLR(rf, alpha, beta, numberPoints);
     
-    np::ndarray result = CArray2Numpy(rf,numberPoints);
+    np::ndarray result = CArray2CNumpy(rf,numberPoints);
 
     free(beta);
     free(alpha);

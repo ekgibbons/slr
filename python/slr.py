@@ -14,7 +14,6 @@ __license__ = "Python"
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import fftpack
 
 import rf_tools
 import fir
@@ -25,7 +24,7 @@ class slr:
     """
     
     def __init__(self, rfType, numberPoints, tbw, duration,
-                 flipAngle=None,inRipple=0.01, outRipple=0.01):
+                 flipAngle=None,filterType="pm",inRipple=0.01, outRipple=0.01):
         """
         
         Arguments:
@@ -33,6 +32,11 @@ class slr:
         - `numberPoints`: number of points in rf pulse
         - `tbw`: the time bandwidth
         - `duration`: the pulse duration [ms]
+        - `flipAngle`: the flip angle in degrees (default is chosen by 
+                       pulse type if not specified here
+        - `filterType`: the filter for the beta (default is 'pm')
+                        -> 'pm': parks mcclellan
+                        -> 'ls': least squares
         - `inRipple`: the passband ripple (default is 0.001)
         - `outRipple`: the stopband ripple (default is 0.001)
         """
@@ -51,13 +55,11 @@ class slr:
         self.tbw = tbw
         self.duration = duration
         self.flipAngle = flipAngle
+        self.filterType = filterType
         self.d1e = inRipple
         self.d2e = outRipple
-        
-        # self.rf = slr_c.GenerateRF(self.numberPoints,self.tbw,self.rf_type,
-        #                            self.inRipple,self.outRipple)
 
-    def __DInf(self,d1,d2):
+    def _DInf(self,d1,d2):
         """Calculates dinf
         
         Arguments:
@@ -80,7 +82,7 @@ class slr:
 
         return di
 
-    def __RFScaleG(self):
+    def _RFScaleG(self):
         """
         
         Arguments:
@@ -124,36 +126,49 @@ class slr:
             print "ERROR:  please choose an appropriate pulse type"
             pass
 
-        di = self.__DInf(d1,d2)
+        if self.flipAngle is not None:
+            bsf = np.sin(self.flipAngle/2.*np.pi/180.)
+            
+        di = self._DInf(d1,d2)
 
         # transition band width
         w = di/self.tbw
 
         # frequency bands
         f = np.array([0, (1-w)*(self.tbw/2), (1+w)*(self.tbw/2),
-                      (float(self.numberPoints)/2)])/(float(self.numberPoints)/2)
-
-        m = np.array([1,1,0,0])
+                      (float(self.numberPoints)/2)])/(float(self.numberPoints)/2)/2
         w = np.array([1,d1/d2])
 
         # build the beta polynomial
-        betaPolynomial = fir.ls(self.numberPoints,f,m,w)
-
-        # determine scaling factor
-        if self.flipAngle is not None:
-            # find betaProfile, to better approximate the ripples, zero-pad
-            # the fft.  
-            betaProfile = fftpack.fft(betaPolynomial,n=4*len(betaPolynomial))
-            bsf = np.sin(flipAngle/2)/np.amax(abs(betaProfile))
-
+        if self.filterType is "ls":
+            m = np.array([1,1,0,0])
+            betaPolynomial = fir.ls(self.numberPoints,f,m,w)
+        elif self.filterType is "pm":
+            m = np.array([1,0])
+            betaPolynomial = fir.remez(self.numberPoints,f,m,w)
+        elif self.filterType is "min" or self.filterType is "max":
+            n2 =2*self.numberPoints - 1
+            di = 0.5*self._DInf(2*d1,0.5*d2*d2)
+            w = di/self.tbw
+            f = np.array([0, (1-w)*(self.tbw/2), (1+w)*(self.tbw/2),
+                    (float(self.numberPoints)/2)])/(float(self.numberPoints)/2)/2
+            w = np.array([1,2*d1/(0.5*d2*d2)])
+            m = np.array([1.,0.])
+            betaPolynomial = fir.remez(n2,f,m,w)
+            betaPolynomial = fir.MinPhase(betaPolynomial)
+            if self.filterType is "min":
+                betaPolynomial = betaPolynomial[::-1]            
+            
         betaPolynomial *= bsf
 
+        print betaPolynomial
         # insure that the betaPolynomial is complex...probably won't be...but
         # this is okay.
-        betaPolynomial = betaPolynomial.astype(complex)
+        # betaPolynomial = betaPolynomial.astype(complex)
+        # print betaPolynomial
 
         self.rf = rf_tools.Beta2RF(betaPolynomial)
-        self.__RFScaleG()
+        self._RFScaleG()
         
     def GetRF(self):
         """Returns the unscaled RF waveform
