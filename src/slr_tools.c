@@ -178,149 +178,112 @@ void InverseSLR(double *rf1, double *a, double *b, int numpts)
     }
 }
 
-/* float dinf(float d1, float d2) */
-/* { */
+void ab2ex(double *mxy, double *a, double *b, int length)
+{
+    int ii;
+    
+    for (ii = 0; ii < length; ii++)
+    {
+	mxy[2*ii] = 2*(a[2*ii]*b[2*ii] + a[2*ii+1]*b[2*ii+1]);
+	mxy[2*ii+1] = 2*(-a[2*ii]*b[2*ii+1] + a[2*ii+1]*b[2*ii]);
+    }
+}
 
-/*     float a1 = (float)5.309e-3; */
-/*     float a2 = (float)7.114e-2; */
-/*     float a3 = (float)-4.761e-1; */
-/*     float a4 = (float)-2.66e-3; */
-/*     float a5 = (float)-5.941e-1; */
-/*     float a6 = (float)-4.278e-1; */
+void ab2inv(double *mxy, double *b, int length)
+{
+    int ii;
+    
+    for (ii = 0; ii < length; ii++)
+    {
+	mxy[2*ii] = 1 - 2*(b[2*ii]*b[2*ii] + b[2*ii+1]*b[2*ii+1]);
+	mxy[2*ii+1] = 0;
+    }
+}
 
-/*     float l10d1 = (float)log10(d1); */
-/*     float l10d2 = (float)log10(d2); */
-
-/*     float d; */
-
-/*     d=(a1*l10d1*l10d1+a2*l10d1+a3)*l10d2+(a4*l10d1*l10d1+a5*l10d1+a6); */
-
-/*     return d; */
-
-/* } */
-
-
-/* void gen_slr_rf(float* rf1, int numpts, float tb, int ptype, float in_err, float out_err) */
-/* { */
+void ab2se(double *mxy, double *b, int length)
+{
+    int ii;
+    
+    for (ii = 0; ii < length; ii++)
+    {
+	mxy[2*ii] = -(b[2*ii]*b[2*ii+1] + b[2*ii+1]*b[2*ii]);
+	mxy[2*ii+1] = (b[2*ii]*b[2*ii] - b[2*ii+1]*b[2*ii+1]);
+    }
+}
 
 
-/*     // Variable declarations */
-/*     int i; */
-/*     double bsf, d_inf, w; */
+void abrx(double *rf, double *gx, int ns, double *x, int nx,
+	  double *alpha, double *beta) 
+{
+    double alf[2], bet[2];
+    double xLocation;
+    int ix;
     
-/*     // Cayley-Klein coeffs (arrays to hold real and imag vals) */
-/*     double *b = malloc(2*(long unsigned int)numpts*sizeof(double)); */
-/*     double *a = malloc(2*(long unsigned int)numpts*sizeof(double)); */
-    
-/*     if ( a==NULL || b==NULL ) { */
-/*         printf("Error allocating memory"); */
-/*         return; */
-/*     } */
-    
-/*     // Determine effective in-slice and out-of-slice errors */
-/*     switch (ptype) { */
-/*         case EXCITATION : */
-/*             bsf = (float)sqrt(0.5); */
-/*             in_err = (float)(sqrt(in_err)*bsf); */
-/*             out_err = (float)(out_err*bsf); */
-/*             break; */
-            
-/*         case SMALLTIP : */
-/*             bsf = 1; */
-/*             break; */
-            
-/*         case SPINECHO : */
-/*             bsf = 1; */
-/*             in_err /= 4; */
-/*             out_err = (float)sqrt(out_err); */
-/*             break; */
-            
-/*         case SATURATION: */
-/*             bsf = (float)sqrt(0.5); */
-/*             in_err /= 2; */
-/*             out_err = (float)sqrt(out_err); */
-/*             break; */
-            
-/*         case INVERSION : */
-/*             bsf = 1; */
-/*             in_err /= 8; */
-/*             out_err = (float)sqrt(0.5*out_err); */
-/*             break; */
-            
-/*         default : */
-/*             printf("Invalid pulse type selected. Options: 1-EXCITATION, 2-SMALLTIP, 3-SPINECHO, 4-SATURATION, 5-INVERSION\n"); */
-/*             return; */
-/*     } */
-    
-/*     // Transform scan/slice parameters into filter design parameters */
-/*     d_inf = dinf(in_err, out_err); */
-/*     w = d_inf/tb; // transition width */
-    
-/*     // Parks-McClellan inputs */
-/*     int filttype = BANDPASS;    // type of filter */
-/*     int numbands = 2;           // number of bands (stop + pass) */
-/*     double des[2] = {1, 0};     // intended band amplitudes */
-/*     double weight[2] = {1, in_err/out_err}; // error weights */
-/*     double bands[4] = {0, (1-w)*tb/numpts/2, (1+w)*tb/numpts/2, 0.5}; // location of band edges [0 w1, w2, 0.5] */
-/*     double *h = malloc((long unsigned int)numpts*sizeof(double)); // filter coeffs */
-    
-/*     // compute filter coeffs using parks-mcclellan */
-/*     remez(h, numpts, numbands, bands, des, weight, filttype); */
-    
-    
-/*     if (ptype == SMALLTIP) { */
-/*         // use small-tip approximation and assume fourier transform relationship */
-/*         for (i=0; i<numpts; i++) { */
-/*             rf1[i] = (float) h[i]; */
-/*         } */
-        
-/*         free(a); */
-/*         free(b); */
-/*         free(h); */
-/*         return; */
-/*     } */
-    
-/*     // transform into b, array of cayley-klein polynomial coeffs */
-/*     for (i=0; i <numpts; i++){ */
-/*         b[2*i] = h[i]*bsf; */
-/*         b[2*i+1] = 0; */
-/*     } */
-    
-/*     b2a(a, b, numpts); // compute a */
-    
-/*     inverse_slr(rf1, a, b, numpts); // inverse SLR - (An, Bn)==>(RF samples) */
- 
-    
-/*     // ************************************************************************ */
-/*     //  Debug - print a bunch of outputs to screen */
-/*     // ************************************************************************ */
-    
-/*     // printf("d1: %f, d2: %f, D_inf: %f, TB: %f, Lower: %f, Upper: %f\n", in_err, out_err, d_inf, tb, (1-w)*tb/numpts/2, (1+w)*tb/numpts/2); */
-    
-/*     // for (i=0; i<100; i++) { */
-/*     //     printf("%f\n",h[i]); */
-/*     // } */
-    
-/*     // for (i=0; i<200; i++) { */
-/*     //     printf("%f\n",a[i]); */
-/*     // } */
-    
-/*     // for (i=0; i<200; i++) { */
-/*     //     printf("%f\n",b[i]); */
-/*     // } */
-    
-/*     // for (i=0; i<100; i++) { */
-/*     //     printf("%f\n",rf1[i]); */
-/*     // } */
-    
-/*     free(h); */
-/*     free(b); */
-/*     free(a); */
-    
-/*     return; */
-/* } */
+    for (ix = 0; ix < nx; ix++) 
+    {
+	alf[0] = 1.0; 
+	alf[1] = 0.0; 
+	bet[0] = 0.0; 
+	bet[1] = 0.0;
+	xLocation = x[ix];
+	abrot(alf, bet, xLocation, rf, gx, ns);
+	alpha[2*ix] = alf[0];
+	alpha[2*ix+1] = alf[1];
+	beta[2*ix] = bet[0];
+	beta[2*ix+1] = bet[1];
+    }
+}
 
-/* void ge_export(float* rf1) { */
+void abrot(double *a, double *b, double x, 
+	   double *rf, double *gx, int ns)
+{
     
-/*     return; */
-/* } */
+    double nx, ny, nz, snp, csp, cg, cpr, cpi, phi;
+    double al[2], be[2], ap[2], bp[2];
+    int k;
+    
+    for (k = 0; k < ns; k++)
+    {
+	cg = x*gx[k];
+	cpr = rf[2*k];
+	cpi = rf[2*k + 1];
+
+	phi = sqrt(cg*cg+cpr*cpr+cpi*cpi);
+
+	if (phi > 0.0)
+	{
+	    nx = cpr/phi; 
+	    ny = cpi/phi; 
+	    nz = cg/phi;
+	} 
+	else {
+	    nx = 0.0; 
+	    ny = 0.0; 
+	    nz = 1.0;   /* doesn't matter, phi=0*/
+	}
+
+	csp = cos(phi/2); 
+	snp = sin(phi/2);
+	al[0] = csp; 
+	al[1] = nz*snp;
+	be[0] = ny*snp; 
+	be[1] = nx*snp;
+	
+	bp[0] = al[0]*b[0]-al[1]*b[1]+be[0]*a[0]-be[1]*(-a[1]);
+	bp[1] = al[0]*b[1]+al[1]*b[0]+be[1]*a[0]+be[0]*(-a[1]);
+	    
+	ap[0] = -(be[0]*b[0]-(-be[1])*b[1]) 
+	    + al[0] *a[0]-(-al[1])*(-a[1]);
+	ap[1] = -(-(-(be[1])*b[0]+  be[0] *b[1]) 
+		  + (-al[1])*a[0]+  al[0] *(-a[1]));
+	
+	a[0] = ap[0]; 
+	a[1] = ap[1]; 
+	b[0] = bp[0]; 
+	b[1] = bp[1];
+    }
+    
+    return;
+}
+
+

@@ -18,7 +18,6 @@ import numpy as np
 import rf_tools
 import fir
 
-
 class slr:
     """ Generates the SLR pulse
     """
@@ -45,11 +44,19 @@ class slr:
 
         try:
             pulse_index = availType.index(rfType)
-        except ValueError:
+        except RuntimeError:
             print "ERROR:  please enter valid rf pulse type"
-            print "\t'%s' is not valid" % rf_type
+            print "\t'%s' is not valid" % rfType
             print "\tOptions are: 'ex','smalltip','se','sat','inv'"
 
+        if rfType is "smalltip" and filterType is not "smalltip":
+            filterType = "smalltip"
+        
+        
+        if rfType is not "smalltip" and filterType is "smalltip":
+            raise RuntimeError("smalltip filters not available for this pulse")
+
+        
         self.rfType = rfType # pulse_index
         self.numberPoints = numberPoints
         self.tbw = tbw
@@ -123,8 +130,7 @@ class slr:
             d1 = self.d1e/8
             d2 = np.sqrt(0.5*self.d2e)
         else:
-            print "ERROR:  please choose an appropriate pulse type"
-            pass
+            raise RuntimeError("please choose an appropriate pulse type")
 
         if self.flipAngle is not None:
             bsf = np.sin(self.flipAngle/2.*np.pi/180.)
@@ -143,6 +149,12 @@ class slr:
         if self.filterType is "ls":
             m = np.array([1,1,0,0])
             betaPolynomial = fir.ls(self.numberPoints,f,m,w)
+        elif self.filterType is "smalltip":
+            if self.flipAngle is None:
+                print "please specify flip angle for small tip"
+                pass
+            bsf = self.flipAngle/180.*np.pi
+            betaPolynomial = fir.msinc(self.numberPoints,self.tbw)
         elif self.filterType is "pm":
             m = np.array([1,0])
             betaPolynomial = fir.remez(self.numberPoints,f,m,w)
@@ -157,7 +169,9 @@ class slr:
             betaPolynomial = fir.remez(n2,f,m,w)
             betaPolynomial = fir.MinPhase(betaPolynomial)
             if self.filterType is "min":
-                betaPolynomial = betaPolynomial[::-1]            
+                betaPolynomial = betaPolynomial[::-1]
+        else:
+            raise RuntimeError("please choose the appropriate filter type")
             
         betaPolynomial *= bsf
 
@@ -165,7 +179,11 @@ class slr:
         # this is okay.
         betaPolynomial = betaPolynomial.astype(complex)
 
-        self.rf = rf_tools.Beta2RF(betaPolynomial)
+        if self.filterType is "smalltip":
+            self.rf = betaPolynomial
+        else:
+            self.rf = rf_tools.Beta2RF(betaPolynomial)
+            
         self._RFScaleG()
         
     def GetRF(self):
@@ -185,44 +203,34 @@ class slr:
         """
 
         return self.rfScaled
+
+    def Simulate(self,sliceThickness,z,simulationType=None):
+        """
         
+        Arguments:
+        - `self`:
+        - `pulseWidth`:
+        - `x`:
+        """
+
+        if simulationType is None:
+            if self.rfType is "smalltip":
+                raise RuntimeError("simulation type needed")
+            else:
+                simulationType = self.rfType
+            
+        sliceThicknessCM = sliceThickness/10
+        zCM = z/10
+        dt = self.duration/self.numberPoints
         
-    # def __Beta2Alpha(self,beta):
-    #     """Takes the beta polynomial and converts it to the alpha
-    #        polynomial.  Usually done in C routine, but that isn't
-    #        the algorithm that is complicated...
+        bandwidth = self.tbw/self.duration
+        gradientAmplitude = bandwidth/sliceThicknessCM;
+        gradient = 2*np.pi*gradientAmplitude*dt*np.ones((self.numberPoints))
+
+        profile = rf_tools.SimulateRF(self.rf.astype(complex),
+                                      gradient,zCM,simulationType)
         
-    #     Arguments:
-    #     - `beta`:
-    #     """
-
-    #     betaSize = len(beta)
-    #     padSize = 2**(int(np.log2(betaSize) - np.log2(betaSize)%1))*2*16
-    #     betaFT = fftpack.fft(beta,n=padSize)
-
-    #     betaFT /= np.sqrt(np.amax(abs(betaFT)))
-
-    #     plt.figure()
-    #     plt.plot(abs(betaFT))
-    #     plt.show()
+        return profile
         
-    #     alphaMag = np.sqrt(1 - abs(betaFT)**2)
-    #     alphaFT = np.sqrt(np.log(alphaMag))
-
-    #     alphaFT = fftpack.ifft(alphaFT,n=padSize)
-    #     alphaFT[1:padSize/2-1] *= 2
-    #     alphaFT[padSize/2+1:padSize] = 0
-        
-    #     alphaFT = fftpack.ifft(alphaFT,n=padSize)
-    #     alphaFT /= padSize
-
-    #     phase = -alphaFT.imag
-    #     alphaFT = alphaMag*np.exp(1j*phase)
-
-    #     alpha = fftpack.ifft(alphaFT,n=padSize)
-    #     alpha = alpha[:betaSize]/padSize
-    #     alpha = alpha[::-1]
-
-    #     print alpha
         
         
