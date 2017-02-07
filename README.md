@@ -12,7 +12,7 @@ mkdir obj # build objects will be placed here
 make
 make install
 ```
-The `install` step is determined where you place the install path.  The install location is established by 
+The `install` step determines where you place the install path.  The install location is established by 
 ```shell
 INSTALL_PATH = /location/of/python/path
 ```
